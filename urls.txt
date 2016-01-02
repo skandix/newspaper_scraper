@@ -1,0 +1,3 @@
+http://www.vg.no/rss/feed/forsiden/
+http://www.sabah.com.tr/rss/gundem.xml
+http://itavisen.no/feed/
