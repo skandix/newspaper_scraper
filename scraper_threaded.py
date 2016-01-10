@@ -1,7 +1,6 @@
 # coding=utf-8
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 import requests
 import threading

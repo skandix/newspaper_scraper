@@ -4,6 +4,7 @@ import requests
 from pymongo import MongoClient
 import threading
 import datetime
+import time as t
 
 ##
 # Setup
@@ -11,7 +12,7 @@ import datetime
 time = 30 #schedule time
 
 client = MongoClient('localhost', 27017)
-db = client.pypaper_api #name of db
+db = client.api #name of db
 
 try:
 	collection = db.create_collection('articles', capped = True, max = 3000, size = 5242880)
@@ -107,12 +108,14 @@ def get_urls():
 # parsing each url returned from get_urls()
 ##
 def schedule():
+	start = t.time()
 	for url in get_urls():
 		#print 'parsing url: ', url
 		try:
 			parse(url)
 		except Exception as e:
 			print e
+	print "Process finished in: ", t.time() - start
 	threading.Timer(time, schedule).start()
 
 if __name__ == '__main__':
