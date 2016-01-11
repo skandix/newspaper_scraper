@@ -7,16 +7,18 @@ import requests
 import time
 
 #################################################################################################
+#Variables
 num_threads = 4
+#Database
 client = MongoClient('localhost', 27017)
 db = client.api #name of db
 url_db = db['urls']
 
 try:
-	collection = db.create_collection('articles', capped = True, max = 3000, size = 5242880)
+	collection = db.create_collection('articles', capped = True, max = 10000, size = 5242880)
 except:
 	collection = db['articles']
-
+#Headers
 request_headers = {
 "Accept-Language": "en-US,en;q=0.5",
 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0",
@@ -24,6 +26,7 @@ request_headers = {
 "Connection": "keep-alive"
 }
 #################################################################################################
+#This method crawls the article itself and gets the image from the facebook or twitter metatag
 def get_image(url):
 	try:
 		req = requests.get(url, headers=request_headers)
@@ -33,7 +36,7 @@ def get_image(url):
 	except:
 		return ""
 
-
+#This method is handled by the thread pool.
 def worker(url):
 	feed = feedparser.parse(url.get('link'))
 	items = feed['items']
@@ -49,8 +52,8 @@ def worker(url):
 			collection.insert_one(article)
 			print article.get('title')
 
-
-
+#################################################################################################
+#Init threads & urls
 def init():
 	while True:
 		start = time.time()
