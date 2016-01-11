@@ -2,15 +2,17 @@
 from bs4 import BeautifulSoup
 import requests
 from pymongo import MongoClient
-from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import ThreadPool, Queue
 import threading
 import datetime
 import time
+import pprint as p
 
 #################################################################################################
 #Variables
 num_threads = 4 #number of threads
 mutex = threading.Lock()
+q = Queue.Queue(maxsize=0)
 
 #Database
 client = MongoClient('localhost', 27017)
@@ -42,6 +44,7 @@ def get_image(url):
 
 #This method is handled by the thread pool.
 def worker(url):
+	articles = []
 	date = datetime.datetime.now()
 	#Request url
 	try:
@@ -55,14 +58,12 @@ def worker(url):
 	#Iter each item and parse it
 	for item in soup.findAll('item')[0:3]:
 		article = {}
-		article['title'] = item.title.text.encode('utf-8')
+		article['link'] = item.link.text.encode('utf-8')
 		#Check if already exsists
-
-		if collection.find({'title':article.get('title')}).count() == 0:
-
-			article['link'] = item.link.text.encode('utf-8')
-			article['pubdate'] =  date.isoformat()
-			article['provider'] = url.get('provider')
+		if collection.find(article).count() == 0:
+			article['title'] = item.title.text.encode('utf-8')
+			article['pubdate'] =  item.pubDate.text
+			article['source'] = url.get('source')
 			article['country'] = url.get('country')
 			article['category'] = url.get('category')
 			try:
@@ -74,11 +75,10 @@ def worker(url):
 			except Exception as e:
 				article['image_url'] =  get_image(item.link.text.encode('utf-8'))
 
-			#Add to database
-			mutex.acquire()
-			collection.insert_one(article)
-			print article.get('title')
-			mutex.release()
+			articles.append(article)
+
+	return articles
+
 
 #################################################################################################
 #Init threads & urls
@@ -87,9 +87,14 @@ def init():
 	urls = [url for url in url_db.find({})]  #urls to parse in bjson format
 	start = time.time()
 	pool = ThreadPool(num_threads) #Create a pool of 4 worker threads
-	pool.map(worker, urls) #Tell them to execute worker method
+	articles = pool.map(worker, urls) #Tell them to execute worker method return their work
 	pool.close()
 	pool.join() #wait for them to finish
+	for article in articles:
+		if article:
+			collection.insert_many(article)
+			print "* News articles added to database"
+
 	print "* Process Finished in: ", time.time() - start
 	threading.Timer(15, init).start()
 
