@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup
 import requests
 from pymongo import MongoClient
-from multiprocessing.pool import ThreadPool, Queue
+from multiprocessing.pool import ThreadPool
 import threading
 import datetime
 import time
@@ -12,7 +12,6 @@ import pprint as p
 #Variables
 num_threads = 4 #number of threads
 mutex = threading.Lock()
-q = Queue.Queue(maxsize=0)
 
 #Database
 client = MongoClient('localhost', 27017)
@@ -84,19 +83,24 @@ def worker(url):
 #Init threads & urls
 def init():
 	#GET urls from db
-	urls = [url for url in url_db.find({})]  #urls to parse in bjson format
-	start = time.time()
-	pool = ThreadPool(num_threads) #Create a pool of 4 worker threads
-	articles = pool.map(worker, urls) #Tell them to execute worker method return their work
-	pool.close()
-	pool.join() #wait for them to finish
-	for article in articles:
-		if article:
-			collection.insert_many(article)
-			print "* News articles added to database"
+	try:
+		start = time.time()
+		urls = [url for url in url_db.find({})]  #urls to parse in bjson format
+		pool = ThreadPool(num_threads) #Create a pool of 4 worker threads
+		articles = pool.map(worker, urls) #Tell them to execute worker method return their work
+		pool.close()
+		pool.join() #wait for them to finish
+		for article in articles:
+			if article:
+				collection.insert_many(article)
+				print "* News articles added to database"
 
-	print "* Process Finished in: ", time.time() - start
-	threading.Timer(15, init).start()
+		print "* Process Finished in: ", time.time() - start
+		threading.Timer(15, init).start()
+	except Exception as e:
+		print e
+		time.sleep(3)
+		init()
 
 if __name__ == '__main__':
 	init()
