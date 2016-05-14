@@ -23,6 +23,9 @@ def getIMG(url):
 
 	#iterates through list, and takes away shit stuff, and takes the first in the list. and returns it
 	for i in img_link:
-		return str(i[0]).replace('image" content="', '')
+		#replacing stuff to get the desired output :)
+		return str(i[0]).replace('image" content="', '').replace('"><me', '')
+		#makes sure that the list is always empty, when getting new links...
+		del img_link[:]
 
 print getIMG("http://www.foxnews.com/politics/2016/05/13/conservatives-outraged-over-obama-transgender-directive-to-public-schools.html?intcmp=hpbt1")
