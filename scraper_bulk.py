@@ -6,8 +6,8 @@ from multiprocessing.pool import ThreadPool
 import threading
 import datetime
 import time
+import re
 
-#################################################################################################
 #Variables
 num_threads = 4 #number of threads
 
@@ -28,16 +28,16 @@ request_headers = {
 "Content-Type":"Text",
 "Connection": "keep-alive"
 }
-#################################################################################################
+
 #This method crawls the article itself and gets the image from the facebook or twitter metatag
 def get_image(url):
 	try:
 		req = requests.get(url, headers=request_headers)
-		soup = BeautifulSoup(req.content, 'html.parser')
-		image_meta = soup.find(property = 'og:image') or soup.find(name = 'twitter:image')
-		return image_meta.get('content')
+		p = re.compile(ur'(?!<\w{4}\s\w{8}\S+)(?:image|twitter|facebook)"\s\w{7}\S{2}[\w\d\S]+[.jpg|.png|.gif|.jpeg|]') #creds skandix
+		loot = re.findall(p, req.content)
+		print str(loot[0]).replace('image" content="', '')
 	except:
-		return ""
+		return "" #No image
 
 #This method is handled by the thread pool.
 def worker(url):
@@ -77,7 +77,6 @@ def worker(url):
 	return articles
 
 
-#################################################################################################
 #Init threads & urls
 def init():
 	#GET urls from db
@@ -91,7 +90,7 @@ def init():
 		for article in articles:
 			if article:
 				collection.insert_many(article)
-				print "*"
+				print("Article(s) inserted to DB")
 
 		#print "* Process Finished in: ", time.time() - start
 		time.sleep(3)
@@ -99,4 +98,3 @@ def init():
 
 if __name__ == '__main__':
 	init()
-#################################################################################################
